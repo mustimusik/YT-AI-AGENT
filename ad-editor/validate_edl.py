@@ -27,7 +27,7 @@ grows a lot more complex, swap this for the `jsonschema` package instead.
 from pathlib import Path
 
 VALID_ACCENTS = {None, "gold", "red"}
-VALID_BEAT_TYPES = {"zoom_punch", "cutaway", "slide", "chord_label", "flash", "flare", "sfx"}
+VALID_BEAT_TYPES = {"zoom_punch", "cutaway", "slide", "chord_label", "flash", "flare", "sfx", "pip"}
 
 REQUIRED_BEAT_FIELDS = {
     "zoom_punch": ["start", "end"],
@@ -37,6 +37,7 @@ REQUIRED_BEAT_FIELDS = {
     "flash": ["start", "end"],
     "flare": ["start", "end"],
     "sfx": ["start", "end", "sfx"],  # audio-only cue, no visual — e.g. a highlight "ding" on an accented word
+    "pip": ["start", "end", "source"],  # picture-in-picture card (ebook cover, course catalog, etc); optional: position, label
 }
 
 

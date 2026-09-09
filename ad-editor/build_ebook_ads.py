@@ -49,6 +49,16 @@ TRANSITION_SFX = [
     str(SFX_DIR / "mouse click 1.MP3"),
     str(SFX_DIR / "camera flash.MP3"),
 ]
+# Real flare transition footage (team-provided, replaces the earlier
+# synthetic pan-and-glow). Each is a ~6s black->bloom->black cycle meant to
+# be sped up (render.py's "flare" beat handles this via setpts when a
+# "source" is given) rather than played at native speed.
+TRANSITIONS_DIR = ROOT / "transitions"
+FLARE_SOURCES = [
+    str(TRANSITIONS_DIR / "flare_1.mp4"),
+    str(TRANSITIONS_DIR / "flare_2.mp4"),
+]
+FLARE_DURATION = 0.8  # compressed on-screen duration of the sped-up flare beat
 HIGHLIGHT_SFX = [
     str(SFX_DIR / "bell.MP3"),
     str(SFX_DIR / "mouse click 2.MP3"),
@@ -417,18 +427,23 @@ def build_edl_for_hook(hook_words, body_words, cta_words, total_duration):
 
     beats = list(slide_beats)
 
-    # Cutaways tied to what's ACTUALLY being said, per the team's mapping
-    # rules — the ebook cover shows the moment "ebook" is said, and the
-    # hands-closeup covers the "belajar step by step... arrange lagu
-    # sendiri" technique explanation (the style bible's broll_hands use
-    # case: b-roll during "explaining technique").
+    # Ebook cover: picture-in-picture card (per reference ads — a bordered
+    # inset in the corner with a caption label underneath, talking head
+    # still fully visible), NOT a full-frame cutaway. Shown at the moment
+    # "ebook" is said.
     ebook_span = find_word_span(body_words, ["ebook"])
     if ebook_span:
         e_start, e_end = ebook_span
         beats.append({
-            "type": "cutaway", "start": e_start, "end": e_end + 1.2,
-            "source": EBOOK_VISUAL,
+            "type": "pip", "start": e_start, "end": e_end + 1.5,
+            "source": EBOOK_VISUAL, "position": "top-right",
+            "label": "DAPETIN EBOOK INI",
         })
+    # Hands-closeup covers the "belajar step by step... arrange lagu
+    # sendiri" technique explanation (the style bible's broll_hands use
+    # case: b-roll during "explaining technique") — this one IS a full-frame
+    # cutaway, per the reference mapping rules (hands b-roll replaces the
+    # shot, unlike the ebook/course-catalog cards which stay inset).
     technique_start_span = find_word_span(body_words, ["belajar"])
     if technique_start_span and body_words:
         t_start = technique_start_span[0]
@@ -442,16 +457,25 @@ def build_edl_for_hook(hook_words, body_words, cta_words, total_duration):
     # click / camera flash so it doesn't feel identical every time. Zoom
     # starts riding in at the SAME instant as the flare (both mark the cut).
     transition_i = 0
+    half = FLARE_DURATION / 2
     if hook_words and body_words:
         sfx = TRANSITION_SFX[transition_i % len(TRANSITION_SFX)]
+        flare_src = FLARE_SOURCES[transition_i % len(FLARE_SOURCES)]
         transition_i += 1
-        beats.append({"type": "flare", "start": hook_end - 0.1, "end": hook_end + 0.4, "sfx": sfx})
+        beats.append({
+            "type": "flare", "start": hook_end - half, "end": hook_end + half,
+            "source": flare_src, "sfx": sfx,
+        })
         beats += snap_in_ease_out(hook_end, body_end if body_words else total_duration)
     if body_words and cta_words:
         cta_start = cta_words[0]["start"]
         sfx = TRANSITION_SFX[transition_i % len(TRANSITION_SFX)]
+        flare_src = FLARE_SOURCES[transition_i % len(FLARE_SOURCES)]
         transition_i += 1
-        beats.append({"type": "flare", "start": cta_start - 0.1, "end": cta_start + 0.4, "sfx": sfx})
+        beats.append({
+            "type": "flare", "start": cta_start - half, "end": cta_start + half,
+            "source": flare_src, "sfx": sfx,
+        })
         beats += snap_in_ease_out(cta_start, total_duration)
     # The very first segment (hook) opens on a cut into the ad itself — snap
     # it in at t=0 too rather than starting flat, so the hook doesn't read

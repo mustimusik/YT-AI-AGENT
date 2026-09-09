@@ -36,11 +36,76 @@ WARM_TINT_KELVIN = 4500  # ffmpeg colortemperature default is 6500 (neutral); lo
 FLARE_WIDTH = CANVAS_W * 2  # wide canvas the flare pans across during its beat
 FLASH_COLOR = "FFB84D"  # warm amber, matches the "warm color-wash" language in the style bible
 
+# Picture-in-picture (a "pip" beat): a small bordered card in a corner while
+# the talking head stays fully visible underneath — for things like an
+# ebook cover or a course-catalog screen recording, per reference ads where
+# these are shown as an inset card with a caption label, never a full-frame
+# cutaway.
+#
+# Width was 460 with the card starting at x=580 — for a CENTER-framed
+# talking head (this crop keeps the subject roughly centered, unlike the
+# reference ad where the subject sits further left), the subject's own
+# face/hair reaches about x=760 on a 1080-wide canvas. A card starting at
+# x=580 sat directly on top of the face. Narrowed + pushed further right so
+# the card clears the measured face boundary with margin, using the actual
+# empty background space beside the head instead of assuming it's there.
+PIP_WIDTH = 280
+PIP_MARGIN = 24
+PIP_BORDER = 8
+PIP_POSITIONS = {  # (x, y) of the card's top-left corner, pre-border
+    "top-right": (CANVAS_W - PIP_WIDTH - PIP_MARGIN, 130),
+    "top-left": (PIP_MARGIN, 130),
+    "bottom-right": (CANVAS_W - PIP_WIDTH - PIP_MARGIN, None),  # y computed per-card height
+}
+_PIP_LABEL_FONT_PATH = "/System/Library/Fonts/Supplemental/Arial Black.ttf"
+
+
+def wrap_text_to_width(text: str, font_path: str, font_size: int, max_width_px: int) -> list[str]:
+    """Greedy word-wrap using actual rendered glyph widths (PIL), not a
+    guessed characters-per-line count — needed so a PIP label wraps to fit
+    the card it sits under instead of assuming it'll fit on one line."""
+    font = ImageFont.truetype(font_path, font_size)
+    measurer = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    words = text.split()
+    lines, current = [], ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        w = measurer.textbbox((0, 0), candidate, font=font)[2]
+        if w <= max_width_px or not current:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
 
 def hex_to_ass_color(hex_rgb: str, alpha: int = 0) -> str:
     hex_rgb = hex_rgb.lstrip("#")
     r, g, b = hex_rgb[0:2], hex_rgb[2:4], hex_rgb[4:6]
     return f"&H{alpha:02X}{b}{g}{r}&"
+
+
+def get_source_duration(path: str) -> float:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", path],
+        capture_output=True, text=True, check=True,
+    )
+    return float(result.stdout.strip())
+
+
+def get_source_dimensions(path: str) -> tuple[int, int]:
+    """width, height of an image or video file, via ffprobe (works for both).
+    Plain "ffprobe" is fine here (no libass/freetype needed for probing)."""
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0",
+         "-show_entries", "stream=width,height", "-of", "csv=p=0", path],
+        capture_output=True, text=True, check=True,
+    )
+    w, h = result.stdout.strip().split(",")
+    return int(w), int(h)
 
 
 COLORS = {
@@ -258,6 +323,7 @@ def main():
     slides = [b for b in beats if b["type"] == "slide"]
     flashes = [b for b in beats if b["type"] == "flash"]
     flares = [b for b in beats if b["type"] == "flare"]
+    pips = [b for b in beats if b["type"] == "pip"]
 
     # Render slide beats to PNGs
     slide_files = []
@@ -297,7 +363,21 @@ def main():
             f"color=c=0x{FLASH_COLOR}:s={CANVAS_W}x{CANVAS_H}:d={dur}:r={fps}",
         ]
     for b in flares:
-        inputs += ["-itsoffset", str(b["start"]), "-loop", "1", "-t", str(b["end"] - b["start"]), "-i", str(flare_png)]
+        if b.get("source"):
+            # Real flare footage (e.g. a bought/team transition asset) is
+            # timed via `setpts` in the filter graph instead of -itsoffset —
+            # see the filter-building loop below for why (itsoffset shifts
+            # raw packet timestamps before the speed-up filter runs, and the
+            # two don't compose the way you'd guess).
+            inputs += ["-i", b["source"]]
+        else:
+            inputs += ["-itsoffset", str(b["start"]), "-loop", "1", "-t", str(b["end"] - b["start"]), "-i", str(flare_png)]
+    for b in pips:
+        if Path(b["source"]).suffix.lower() in IMAGE_EXTS:
+            inputs += ["-itsoffset", str(b["start"]), "-loop", "1",
+                       "-t", str(b["end"] - b["start"]), "-i", b["source"]]
+        else:
+            inputs += ["-itsoffset", str(b["start"]), "-i", b["source"]]
     # Optional real SFX file on ANY beat (e.g. a whoosh/transition sound, or
     # a highlight ding on an accented caption word) — mixed into the audio
     # track at the beat's start time. Plain audio input, no -itsoffset
@@ -380,17 +460,100 @@ def main():
     # actually bright.
     for i, b in enumerate(flares):
         dur = b["end"] - b["start"]
-        panned = f"flarepan{i}"
         out_label = f"fl{i}"
-        pan_x = f"'((t-{b['start']})/{dur})*{FLARE_WIDTH}-{CANVAS_W}'"
+        if b.get("source"):
+            # Real flare footage: these assets (e.g. a bought transition
+            # pack) are typically a slow few-second black -> bloom -> black
+            # cycle, meant to be sped up into a quick punchy flash rather
+            # than played at native speed. `setpts` both compresses the
+            # clip to the beat's duration AND shifts it to start at the
+            # beat's global start time in one expression — see the note by
+            # the corresponding -i in the inputs list above for why this
+            # replaces -itsoffset here instead of combining with it.
+            #
+            # Alpha comes from the footage's own luma (alphamerge), not a
+            # blend mode: black areas (the footage's "off" state) become
+            # fully transparent and only the bright bloom shows through,
+            # composited with a plain `overlay` — the same reliable pattern
+            # used everywhere else in this file. An earlier synthetic flare
+            # tried `blend=all_mode=screen` directly and washed the WHOLE
+            # frame magenta; converting to rgb24 around the blend didn't
+            # fix it either (the output was byte-for-byte identical, which
+            # means the per-YUV-plane theory was wrong too — never
+            # diagnosed further since the alpha/overlay route sidesteps the
+            # whole class of bug and is proven correct elsewhere).
+            orig_dur = get_source_duration(b["source"])
+            factor = dur / orig_dur
+            sped = f"flrsped{i}"
+            alpha = f"flralpha{i}"
+            rgba = f"flrrgba{i}"
+            filter_parts.append(
+                f"[{input_idx}:v]setpts=({factor})*PTS+{b['start']}/TB,split=2[{sped}][{alpha}pre]"
+            )
+            filter_parts.append(f"[{alpha}pre]format=gray[{alpha}]")
+            filter_parts.append(f"[{sped}][{alpha}]alphamerge[{rgba}]")
+            filter_parts.append(
+                f"[{cur}][{rgba}]overlay=enable='between(t,{b['start']},{b['end']})'[{out_label}]"
+            )
+        else:
+            panned = f"flarepan{i}"
+            pan_x = f"'((t-{b['start']})/{dur})*{FLARE_WIDTH}-{CANVAS_W}'"
+            filter_parts.append(
+                f"[{input_idx}:v]crop={CANVAS_W}:{CANVAS_H}:x={pan_x}:y=0[{panned}]"
+            )
+            filter_parts.append(
+                f"[{cur}][{panned}]overlay=enable='between(t,{b['start']},{b['end']})'[{out_label}]"
+            )
+        cur = out_label
+        input_idx += 1
+
+    # Picture-in-picture beats: small bordered card in a corner (ebook cover,
+    # course-catalog "video penjelasan" screen recording, etc), talking head
+    # still fully visible — NOT a full-frame cutaway. See PIP_* constants.
+    for i, b in enumerate(pips):
+        src_w, src_h = get_source_dimensions(b["source"])
+        card_w = PIP_WIDTH
+        card_h = round(PIP_WIDTH * src_h / src_w)
+        position = b.get("position", "top-right")
+        px, py = PIP_POSITIONS.get(position, PIP_POSITIONS["top-right"])
+        if py is None:  # bottom-anchored: compute from card height
+            py = CANVAS_H - card_h - 2 * PIP_BORDER - 260
+        scaled = f"pipscale{i}"
+        out_label = f"pip{i}"
         filter_parts.append(
-            f"[{input_idx}:v]crop={CANVAS_W}:{CANVAS_H}:x={pan_x}:y=0[{panned}]"
+            f"[{input_idx}:v]scale={card_w}:{card_h},format=yuva420p,"
+            f"pad={card_w + 2 * PIP_BORDER}:{card_h + 2 * PIP_BORDER}:{PIP_BORDER}:{PIP_BORDER}:color=white[{scaled}]"
         )
         filter_parts.append(
-            f"[{cur}][{panned}]overlay=enable='between(t,{b['start']},{b['end']})'[{out_label}]"
+            f"[{cur}][{scaled}]overlay=x={px}:y={py}:enable='between(t,{b['start']},{b['end']})'[{out_label}]"
         )
         cur = out_label
         input_idx += 1
+        label = b.get("label")
+        if label:
+            # Wrap to fit the CARD's own width, not the full canvas — an
+            # earlier version centered the whole label string under the
+            # card's x-center without checking its rendered width, so a
+            # longer label ran straight off the right edge of frame while
+            # narrow cards (needed to clear the subject's face — see
+            # PIP_WIDTH's comment) don't have room for a wide one-liner.
+            fontsize = 38
+            max_line_w = card_w + 2 * PIP_BORDER + 40  # a little wider than the card is fine
+            lines = wrap_text_to_width(label.upper(), _PIP_LABEL_FONT_PATH, fontsize, max_line_w)
+            label_x = px + (card_w + 2 * PIP_BORDER) / 2
+            label_top = py + card_h + 2 * PIP_BORDER + 16
+            line_height = fontsize + 12
+            for li, line in enumerate(lines):
+                escaped = line.replace("'", "\\'").replace(":", "\\:")
+                out_label2 = f"piplabel{i}_{li}"
+                line_y = label_top + li * line_height
+                filter_parts.append(
+                    f"[{cur}]drawtext=fontfile='{_PIP_LABEL_FONT_PATH}':text='{escaped}':"
+                    f"fontsize={fontsize}:fontcolor=white:borderw=4:bordercolor=black:"
+                    f"x={label_x}-text_w/2:y={line_y}:"
+                    f"enable='between(t,{b['start']},{b['end']})'[{out_label2}]"
+                )
+                cur = out_label2
 
     filter_parts.append(f"[{cur}]subtitles={ass_path}:fontsdir=fonts[vout]")
 

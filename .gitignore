@@ -8,13 +8,16 @@ venv/
 *_normalizing.mp4
 
 # ad-editor/ — heavy binary media and per-project working files.
-# Code, style_bible.md, small examples, and sfx_lib/ (small, reusable team
-# SFX pack) ARE tracked; raw footage/renders are not.
+# Code, style_bible.md, small examples, sfx_lib/ (small, reusable team SFX
+# pack), and transitions/ (small, reusable flare footage) ARE tracked; raw
+# client footage/renders/debug scratch are not.
 ad-editor/broll/
 ad-editor/ebook_ad/
 ad-editor/output/
 ad-editor/_work/
+ad-editor/flare_check/
 *.mp4
 *.mov
 *.MOV
 *.MP4
+!ad-editor/transitions/*.mp4
