@@ -1,9 +1,10 @@
 # YT AI Agent
 
-Satu pintu masuk untuk dua jenis edit video:
+Satu pintu masuk untuk tiga jenis edit video:
 
 - **YOUTUBE CUT**: merapikan rekaman yang sudah ada.
 - **ADS VIDEO**: menghasilkan iklan dengan caption, zoom, B-roll, slide, dan CTA.
+- **CLIPPER VIDEO**: mengubah percakapan atau workshop menjadi klip vertikal yang utuh konteksnya, dengan subtitle dan framing rapi.
 
 Jalankan ini terlebih dahulu. Program akan menanyakan jenis video yang ingin diproses:
 
@@ -11,7 +12,19 @@ Jalankan ini terlebih dahulu. Program akan menanyakan jenis video yang ingin dip
 py -3 run.py
 ```
 
-Untuk agent/chat yang memakai repositori ini, instruksi routing ada di `AGENTS.md`: agent wajib menanyakan pilihan YOUTUBE CUT atau ADS VIDEO sebelum mulai mengedit.
+Untuk agent/chat yang memakai repositori ini, instruksi routing ada di `AGENTS.md`: agent wajib menanyakan pilihan YOUTUBE CUT, ADS VIDEO, atau CLIPPER VIDEO sebelum mulai mengedit.
+
+## Pipeline Clipper Video
+
+Flow ini dipakai untuk video percakapan, workshop, atau Q&A panjang yang ingin diubah menjadi satu atau beberapa klip vertikal.
+
+- Bila script sudah diberikan dan sudah di-ACC, langsung render mengikuti script tersebut.
+- Bila belum ada script, buat transkrip dan draft dulu. Render hanya setelah script di-ACC.
+- Satu klip Q&A mengikuti satu penanya dan menjawab semua pokok pertanyaannya; penanya berikutnya menjadi klip terpisah.
+- Buang dead air dan footage saat kamera berpindah. Potongan dimulai saat kamera sudah settle pada pembicara.
+- Subtitle putih per frasa, shadow gelap, sekitar tengah frame; gunakan gradasi gelap tipis di tepi atas dan bawah.
+
+Panduan, format plan, dan perintah manual ada di [clipper-video/README.md](clipper-video/README.md).
 
 ## Pipeline YouTube
 

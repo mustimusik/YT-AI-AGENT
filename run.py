@@ -58,18 +58,44 @@ def ads():
                  "--edl", edl, "--out", output])
 
 
+def clipper():
+    video = ask("Lokasi file video")
+    out_dir = Path(ask("Folder output", "clipper-output"))
+    out_dir.mkdir(parents=True, exist_ok=True)
+    has_script = ask("Sudah ada script yang di-ACC? ketik ya atau tidak", "tidak").lower()
+    transcript = out_dir / "transcript.json"
+    plan = out_dir / "clipper_plan.json"
+    if has_script in {"ya", "y", "yes"}:
+        script = ask("Lokasi script JSON yang sudah di-ACC")
+        execute([sys.executable, ROOT / "clipper-video" / "clipper.py", "prepare",
+                 "--video", video, "--script", script, "--out", plan])
+        print(f"\nRencana render dibuat di {plan}. Karena script sudah di-ACC, lanjutkan dengan mode render setelah mengecek file.")
+        if ask("Render sekarang? ketik ya untuk lanjut", "tidak").lower() in {"ya", "y", "yes"}:
+            execute([sys.executable, ROOT / "clipper-video" / "clipper.py", "render",
+                     "--plan", plan, "--out", out_dir / "final.mp4"])
+        return
+    execute([sys.executable, ROOT / "video-tools" / "transcribe.py", video, transcript,
+             "--model", "small", "--lang", "id"])
+    execute([sys.executable, ROOT / "clipper-video" / "clipper.py", "draft",
+             "--video", video, "--transcript", transcript, "--out", plan])
+    print(f"\nDraft script dibuat di {plan}. Tinjau dan ACC script dulu; jangan render sebelum ACC.")
+
+
 def main():
     print("=== YT AI Agent ===")
     print("1. YOUTUBE CUT — rapikan dead air, filler, retake, volume")
     print("2. ADS VIDEO — caption, zoom, B-roll, CTA")
+    print("3. CLIPPER VIDEO — pilih klip dari percakapan, script, subtitle, dan framing")
     choice = ask("Mau pilih yang mana")
     try:
         if choice == "1":
             youtube()
         elif choice == "2":
             ads()
+        elif choice == "3":
+            clipper()
         else:
-            raise ValueError("Pilih 1 untuk YOUTUBE CUT atau 2 untuk ADS VIDEO.")
+            raise ValueError("Pilih 1 untuk YOUTUBE CUT, 2 untuk ADS VIDEO, atau 3 untuk CLIPPER VIDEO.")
     except subprocess.CalledProcessError as error:
         sys.exit(f"Proses berhenti: {error}")
 
