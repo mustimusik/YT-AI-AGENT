@@ -60,8 +60,8 @@ def ads():
 
 def main():
     print("=== YT AI Agent ===")
-    print("1. Video YouTube panjang — rapikan dead air, filler, retake, volume")
-    print("2. Video Ads vertikal — caption, zoom, B-roll, CTA")
+    print("1. YOUTUBE CUT — rapikan dead air, filler, retake, volume")
+    print("2. ADS VIDEO — caption, zoom, B-roll, CTA")
     choice = ask("Mau pilih yang mana")
     try:
         if choice == "1":
@@ -69,7 +69,7 @@ def main():
         elif choice == "2":
             ads()
         else:
-            raise ValueError("Pilih 1 untuk YouTube atau 2 untuk Ads.")
+            raise ValueError("Pilih 1 untuk YOUTUBE CUT atau 2 untuk ADS VIDEO.")
     except subprocess.CalledProcessError as error:
         sys.exit(f"Proses berhenti: {error}")
 

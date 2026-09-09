@@ -2,8 +2,8 @@
 
 Satu pintu masuk untuk dua jenis edit video:
 
-- **Video YouTube panjang**: merapikan rekaman yang sudah ada.
-- **Video Ads vertikal**: menghasilkan iklan dengan caption, zoom, B-roll, slide, dan CTA.
+- **YOUTUBE CUT**: merapikan rekaman yang sudah ada.
+- **ADS VIDEO**: menghasilkan iklan dengan caption, zoom, B-roll, slide, dan CTA.
 
 Jalankan ini terlebih dahulu. Program akan menanyakan jenis video yang ingin diproses:
 
@@ -11,7 +11,7 @@ Jalankan ini terlebih dahulu. Program akan menanyakan jenis video yang ingin dip
 py -3 run.py
 ```
 
-Untuk agent/chat yang memakai repositori ini, instruksi routing ada di `AGENTS.md`: agent wajib menanyakan pilihan YouTube atau Ads sebelum mulai mengedit.
+Untuk agent/chat yang memakai repositori ini, instruksi routing ada di `AGENTS.md`: agent wajib menanyakan pilihan YOUTUBE CUT atau ADS VIDEO sebelum mulai mengedit.
 
 ## Pipeline YouTube
 
