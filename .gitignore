@@ -1,7 +1,20 @@
 __pycache__/
 *.py[cod]
 .venv/
+venv/
 .env
 *_tmp/
 *.cuts.json
 *_normalizing.mp4
+
+# ad-editor/ — heavy binary media and per-project working files.
+# Code, style_bible.md, small examples, and sfx_lib/ (small, reusable team
+# SFX pack) ARE tracked; raw footage/renders are not.
+ad-editor/broll/
+ad-editor/ebook_ad/
+ad-editor/output/
+ad-editor/_work/
+*.mp4
+*.mov
+*.MOV
+*.MP4
