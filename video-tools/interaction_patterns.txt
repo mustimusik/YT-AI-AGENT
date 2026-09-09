@@ -1,0 +1,9 @@
+# Satu pola regex per baris untuk membuang segmen yang bukan materi utama.
+# Baris kosong dan yang diawali # diabaikan.
+siapa yang tadi
+sebelum kita lanjut,? ada
+oke pertanyaan
+next question
+kembali ke pertanyaan
+gimana kabarnya
+selamat (pagi|siang|sore|malam) semua
