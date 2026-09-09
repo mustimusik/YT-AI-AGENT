@@ -1,6 +1,21 @@
-# YT AI Agent — Video Editing Tools
+# YT AI Agent
 
-Toolkit lokal untuk merapikan video pembelajaran/talking-head dengan FFmpeg:
+Satu pintu masuk untuk dua jenis edit video:
+
+- **Video YouTube panjang**: merapikan rekaman yang sudah ada.
+- **Video Ads vertikal**: menghasilkan iklan dengan caption, zoom, B-roll, slide, dan CTA.
+
+Jalankan ini terlebih dahulu. Program akan menanyakan jenis video yang ingin diproses:
+
+```powershell
+py -3 run.py
+```
+
+Untuk agent/chat yang memakai repositori ini, instruksi routing ada di `AGENTS.md`: agent wajib menanyakan pilihan YouTube atau Ads sebelum mulai mengedit.
+
+## Pipeline YouTube
+
+Toolkit untuk merapikan video pembelajaran/talking-head dengan FFmpeg:
 
 - menghapus dead air atau mempercepatnya;
 - memotong filler word, retake, dan segmen interaksi/Q&A berdasarkan transkrip;
@@ -43,3 +58,6 @@ Sebelum merender, gunakan `--json-only` untuk meninjau daftar potongan. Pola int
 
 Deteksi dead air bekerja dari level audio. Seleksi filler, retake, dan interaksi bekerja dari transkrip word-level; tinjau file JSON terlebih dahulu untuk rekaman musik, dialog ramai, atau istilah yang sulit ditranskrip.
 
+## Pipeline Ads
+
+Panduan lengkap, format naskah, manifest B-roll, dan aturan gaya ada di [ad-editor/README.md](ad-editor/README.md). Pipeline Ads membuat EDL terlebih dahulu agar kamu dapat meninjau caption, beat, B-roll, dan CTA sebelum video akhir dirender.
