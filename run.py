@@ -62,6 +62,13 @@ def clipper():
     video = ask("Lokasi file video")
     out_dir = Path(ask("Folder output", "clipper-output"))
     out_dir.mkdir(parents=True, exist_ok=True)
+    format_choice = ask("Pilih format: 1 = Clipper 1 Tingkat, 2 = Clipper 2 Tingkat split Q&A", "1")
+    if format_choice not in {"1", "2"}:
+        raise ValueError("Pilih 1 untuk Clipper 1 Tingkat atau 2 untuk Clipper 2 Tingkat.")
+    clipper_format = "single" if format_choice == "1" else "split_qa"
+    responder_asset = None
+    if clipper_format == "split_qa":
+        responder_asset = ask("Lokasi foto/video penjawab untuk layar atas (kosongkan bila ingin cuplikan dari video asli)")
     has_script = ask("Sudah ada script yang di-ACC? ketik ya atau tidak", "tidak").lower()
     transcript = out_dir / "transcript.json"
     plan = out_dir / "clipper_plan.json"
@@ -76,16 +83,19 @@ def clipper():
         return
     execute([sys.executable, ROOT / "video-tools" / "transcribe.py", video, transcript,
              "--model", "small", "--lang", "id"])
-    execute([sys.executable, ROOT / "clipper-video" / "clipper.py", "draft",
-             "--video", video, "--transcript", transcript, "--out", plan])
-    print(f"\nDraft script dibuat di {plan}. Tinjau dan ACC script dulu; jangan render sebelum ACC.")
+    command = [sys.executable, ROOT / "clipper-video" / "clipper.py", "draft",
+               "--video", video, "--transcript", transcript, "--out", plan, "--format", clipper_format]
+    if responder_asset:
+        command.extend(["--responder-asset", responder_asset])
+    execute(command)
+    print(f"\nDraft script dibuat di {plan}. Tinjau konteks dan ACC judul/script dulu; jangan render sebelum ACC.")
 
 
 def main():
     print("=== YT AI Agent ===")
     print("1. YOUTUBE CUT — rapikan dead air, filler, retake, volume")
     print("2. ADS VIDEO — caption, zoom, B-roll, CTA")
-    print("3. CLIPPER VIDEO — pilih klip dari percakapan, script, subtitle, dan framing")
+    print("3. CLIPPER VIDEO — 1 tingkat atau split Q&A 2 tingkat")
     choice = ask("Mau pilih yang mana")
     try:
         if choice == "1":

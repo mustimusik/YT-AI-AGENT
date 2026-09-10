@@ -1,12 +1,15 @@
 {
   "approved": true,
+  "format": "split_qa",
+  "title_approved": true,
   "title": "USIA 47 TAHUN, MASIH BISA IKUT ABRSM?",
   "context": "Satu peserta bertanya tentang usia 47 tahun, ABRSM, dan sertifikasi untuk menjadi guru musik.",
   "speaker": "Peserta dan pembicara",
+  "responder_wait": {"start": 130.32, "end": 132.90},
   "clips": [
-    {"start": 39.12, "end": 44.90, "camera_settled": true},
-    {"start": 130.32, "end": 132.90, "camera_settled": true},
-    {"start": 92.18, "end": 115.22, "camera_settled": true}
+    {"start": 39.12, "end": 44.90, "role": "question", "camera_settled": true},
+    {"start": 130.32, "end": 132.90, "role": "answer", "camera_settled": true},
+    {"start": 92.18, "end": 115.22, "role": "answer", "camera_settled": true}
   ],
   "captions": [
     {"start": 39.16, "end": 40.06, "text": "Apakah usia"},
