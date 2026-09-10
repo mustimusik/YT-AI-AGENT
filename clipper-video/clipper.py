@@ -63,6 +63,9 @@ def normalized_plan(video, script):
         raise ValueError("Script belum ditandai approved: true. Render ditahan sampai ACC.")
     if script.get("title_approved") is not True:
         raise ValueError("Judul belum di-ACC. Set title_approved ke true setelah user setuju.")
+    total_duration = sum(float(clip["end"]) - float(clip["start"]) for clip in clips)
+    if total_duration > 65:
+        raise ValueError("Durasi clip lebih dari 65 detik. Padatkan ke sekitar 60 detik sambil menjaga semua pokok pertanyaan terjawab.")
     if clipper_format == "split_qa":
         question_clips = [clip for clip in clips if clip.get("role") == "question"]
         if not question_clips:
@@ -110,6 +113,7 @@ def draft(args):
             "Pilih hanya satu penanya/konteks dalam satu plan.",
             "Masukkan semua jawaban untuk pokok pertanyaan penanya itu, termasuk subtopik seperti ABRSM atau sertifikasi.",
             "Tandai hanya potongan dengan kamera sudah settle: camera_settled: true.",
+            "Target total durasi sekitar 60 detik; padatkan pertanyaan dan jawaban panjang ke bagian yang paling penting.",
             "Kelompokkan subtitle per frasa, bukan per kata.",
             "Ajukan judul merah-putih kepada user. Set title_approved dan approved ke true hanya setelah user memberi ACC.",
             "Untuk Q&A, beri role question pada potongan penanya dan role answer pada potongan penjawab. Judul tampil selama question lalu hilang ketika answer dimulai.",
@@ -219,12 +223,14 @@ def render(args):
         is_split = clipper_format == "split_qa"
         caption_color = "&H0000FFFF"
         caption_bold = "1"
-        header = f"""[Script Info]\nScriptType: v4.00+\nPlayResX: 720\nPlayResY: 1280\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,{plan['style'].get('caption_font_size', 48)},{caption_color},{caption_color},&H80000000,&H35000000,{caption_bold},0,0,0,100,100,0,0,1,1.2,2.5,5,42,42,0,1\nStyle: Title,Arial,38,&H00FFFFFF,&H00FFFFFF,&H000000FF,&H000000FF,1,0,0,0,100,100,0,0,3,2,0,5,28,28,0,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"""
+        caption_y = int(plan["style"].get("caption_position_y", 627))
+        title_size = int(plan["style"].get("title_font_size", 34))
+        header = f"""[Script Info]\nScriptType: v4.00+\nPlayResX: 720\nPlayResY: 1280\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,{plan['style'].get('caption_font_size', 48)},{caption_color},{caption_color},&H80000000,&H35000000,{caption_bold},0,0,0,100,100,0,0,1,1.2,2.5,5,42,42,0,1\nStyle: Title,Arial,{title_size},&H00FFFFFF,&H00FFFFFF,&H000000FF,&H000000FF,1,0,0,0,100,100,0,0,3,2,0,5,28,28,0,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"""
         lines = []
         for start, end, text in events:
             ass_text = text.replace("\n", r"\N")
             lines.append(
-                f"Dialogue: 0,{stamp(start)},{stamp(end)},Default,,0,0,0,,{{\\pos(360,627)}}{ass_text}\n"
+                f"Dialogue: 0,{stamp(start)},{stamp(end)},Default,,0,0,0,,{{\\pos(360,{caption_y})}}{ass_text}\n"
             )
         first_answer = next((out_start for item, (_, _, out_start) in zip(clips, timeline)
                              if item.get("role") == "answer"), cursor)

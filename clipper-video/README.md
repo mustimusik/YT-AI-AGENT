@@ -17,6 +17,7 @@ Untuk Clipper 2 Tingkat, tanyakan dulu apakah user punya foto/video penjawab. Ji
 4. Hapus dead air secara konservatif. Hapus perpindahan kamera dan mulai kembali ketika kamera sudah settle; jangan memotong di tengah kata.
 5. Ajukan judul terlebih dahulu. Render hanya setelah judul dan script di-ACC; judul merah dengan teks putih tampil selama pertanyaan lalu hilang saat jawaban mulai.
 6. Render dengan subtitle kuning tebal per frasa, outline/shadow hitam, sekitar tengah frame, serta gradasi gelap tipis di atas dan bawah.
+7. Target durasi hasil vertikal adalah sekitar 60 detik. Padatkan pertanyaan dan jawaban panjang ke bagian paling penting, sambil tetap menjaga semua pokok pertanyaan terjawab.
 
 ## Draft tanpa script
 
