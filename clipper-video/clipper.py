@@ -64,8 +64,8 @@ def normalized_plan(video, script):
     if script.get("title_approved") is not True:
         raise ValueError("Judul belum di-ACC. Set title_approved ke true setelah user setuju.")
     total_duration = sum(float(clip["end"]) - float(clip["start"]) for clip in clips)
-    if total_duration > 65:
-        raise ValueError("Durasi clip lebih dari 65 detik. Padatkan ke sekitar 60 detik sambil menjaga semua pokok pertanyaan terjawab.")
+    if total_duration > 100:
+        raise ValueError("Durasi clip lebih dari 100 detik. Padatkan sambil menjaga semua pokok pertanyaan terjawab.")
     if clipper_format == "split_qa":
         question_clips = [clip for clip in clips if clip.get("role") == "question"]
         if not question_clips:
